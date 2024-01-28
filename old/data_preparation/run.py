@@ -1,5 +1,5 @@
-from data_preparation.ImageProcessor import ImageProcessor
-from data_preparation.ImageResizer import ImageResizer
+from old.data_preparation.ImageProcessor import ImageProcessor
+from old.data_preparation.ImageResizer import ImageResizer
 
 
 def resize_dataset_image(processed_path):

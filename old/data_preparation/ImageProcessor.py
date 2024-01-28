@@ -1,4 +1,4 @@
-from data_preparation.FeatureExtraction import FeatureExtractor
+from old.data_preparation.FeatureExtraction import FeatureExtractor
 import os
 import numpy as np
 
