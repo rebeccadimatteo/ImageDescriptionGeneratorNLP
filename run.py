@@ -70,18 +70,22 @@ def BLEU_score(actual, predicted):
         cap = ' '.join(cap)
         processed_actual.append(cap)
 
+    split_processed_actual = [sentence.split() for sentence in processed_actual]
+    #predicted = [sentence.split() for sentence in predicted]
+    split_predicted = predicted.split()
+
     # Calculating the BLEU score by comparing the predicted caption with five actual captions.
-    b1 = corpus_bleu(processed_actual, predicted, weights=(1.0, 0, 0, 0))
-    b2 = corpus_bleu(processed_actual, predicted, weights=(0.5, 0.5, 0, 0))
-    b3 = corpus_bleu(processed_actual, predicted, weights=(0.3, 0.3, 0.3, 0))
-    b4 = corpus_bleu(processed_actual, predicted, weights=(0.25, 0.25, 0.25, 0.25))
+    b1 = corpus_bleu([split_processed_actual], [split_predicted], weights=(1.0, 0, 0, 0))
+    b2 = corpus_bleu([split_processed_actual], [split_predicted], weights=(0.5, 0.5, 0, 0))
+    b3 = corpus_bleu([split_processed_actual], [split_predicted], weights=(0.3, 0.3, 0.3, 0))
+    b4 = corpus_bleu([split_processed_actual], [split_predicted], weights=(0.25, 0.25, 0.25, 0.25))
 
     return [
         (f'BLEU-4: {round(b4, 5)}'),
         (f'BLEU-3: {round(b3, 5)}'),
         (f'BLEU-2: {round(b2, 5)}'),
         (f'BLEU-1: {round(b1, 5)}'),
-        (f'Predicted: {predicted[0]}'),
+        (f'Predicted: {predicted}'),
         (f'Actual:  {processed_actual[0]}')
     ]
 
@@ -99,7 +103,7 @@ def visualization(data, model, evaluator, num_of_images):
 
         predicted_cap = model(filename)
         # Getting the bleu score
-        caps_with_score = evaluator(actual_cap, [predicted_cap] * (len(actual_cap)))
+        caps_with_score = evaluator(actual_cap, predicted_cap)
 
         image_load = load_img(filename, target_size=(199, 199, 3))
         ax = fig.add_subplot(num_of_images, 2, count, xticks=[], yticks=[])
