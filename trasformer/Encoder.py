@@ -5,8 +5,8 @@ from keras import layers
 class TransformerEncoderBlock(layers.Layer):
 
     # Costruttore della classe
-    def __init__(self, embed_dim, dense_dim, num_heads, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, embed_dim, dense_dim, num_heads):
+        super(TransformerEncoderBlock, self).__init__()
 
         # Parametri del blocco Transformer
         self.embed_dim = embed_dim

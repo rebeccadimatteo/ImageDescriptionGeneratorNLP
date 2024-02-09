@@ -1,4 +1,9 @@
 import os
+
+from keras_preprocessing.image import load_img
+from matplotlib import pyplot as plt
+from nltk.translate.bleu_score import corpus_bleu
+
 from data_preparation.preprocessing import load_captions_data, train_val_split, custom_standardization, \
     decode_and_resize
 from model.LRSchedule import LRSchedule
@@ -56,44 +61,70 @@ def make_dataset(images, captions):
     return dataset
 
 
-def test_model(sample_img):
-    path = sample_img
-    sample_img = decode_and_resize(sample_img)
+# Calculates BLEU score of predictions
+def BLEU_score(actual, predicted):
+    # Standardizing the actual captions
+    processed_actual = []
+    for i in actual:
+        cap = [INDEX_LOOKUP[x] for x in vectorization(i).numpy() if INDEX_LOOKUP[x] != '']
+        cap = ' '.join(cap)
+        processed_actual.append(cap)
 
-    # Passa l'immagine alla CNN
-    img = tf.expand_dims(sample_img, 0)
-    img = caption_model.cnn_model(img)
+    # Calculating the BLEU score by comparing the predicted caption with five actual captions.
+    b1 = corpus_bleu(processed_actual, predicted, weights=(1.0, 0, 0, 0))
+    b2 = corpus_bleu(processed_actual, predicted, weights=(0.5, 0.5, 0, 0))
+    b3 = corpus_bleu(processed_actual, predicted, weights=(0.3, 0.3, 0.3, 0))
+    b4 = corpus_bleu(processed_actual, predicted, weights=(0.25, 0.25, 0.25, 0.25))
 
-    # Passa le caratteristiche dell'immagine all'encoder del Transformer
-    encoded_img = caption_model.encoder(img, training=False)
+    return [
+        (f'BLEU-4: {round(b4, 5)}'),
+        (f'BLEU-3: {round(b3, 5)}'),
+        (f'BLEU-2: {round(b2, 5)}'),
+        (f'BLEU-1: {round(b1, 5)}'),
+        (f'Predicted: {predicted[0]}'),
+        (f'Actual:  {processed_actual[0]}')
+    ]
 
-    # Genera la didascalia usando il decoder del Transformer
-    decoded_caption = "<start> "
-    for i in range(max_decoded_sentence_length):
-        tokenized_caption = vectorization([decoded_caption])[:, :-1]
-        mask = tf.math.not_equal(tokenized_caption, 0)
-        predictions = caption_model.decoder(
-            tokenized_caption, encoded_img, training=False, mask=mask
-        )
-        sampled_token_index = np.argmax(predictions[0, i, :])
-        sampled_token = index_lookup[sampled_token_index]
-        if sampled_token == "<end>":
-            break
-        decoded_caption += " " + sampled_token
 
-    decoded_caption = decoded_caption.replace("<start> ", "")
-    decoded_caption = decoded_caption.replace(" <end>", "").strip()
-    print("Predicted Caption for ", path, ": ", decoded_caption)
+def visualization(data, model, evaluator, num_of_images):
+    keys = list(data.keys())  # List of all test images
+    images = [np.random.choice(keys) for i in range(num_of_images)]  # Randomly selected images
 
+    count = 1
+    fig = plt.figure(figsize=(6, 20))
+    for filename in images:
+        actual_cap = data[filename]
+        actual_cap = [x.replace("<start> ", "") for x in actual_cap]  # Removing the start token
+        actual_cap = [x.replace(" <end>", "") for x in actual_cap]  # Removing the end token
+
+        predicted_cap = model(filename)
+        # Getting the bleu score
+        caps_with_score = evaluator(actual_cap, [predicted_cap] * (len(actual_cap)))
+
+        image_load = load_img(filename, target_size=(199, 199, 3))
+        ax = fig.add_subplot(num_of_images, 2, count, xticks=[], yticks=[])
+        ax.imshow(image_load)
+        count += 1
+
+        ax = fig.add_subplot(num_of_images, 2,count)
+        plt.axis('off')
+        ax.plot()
+        ax.set_xlim(0,1)
+        ax.set_ylim(0,len(caps_with_score))
+        for i, text in enumerate(caps_with_score):
+            ax.text(0,i,text,fontsize=10)
+        count += 1
+    plt.show()
 
 if __name__ == '__main__':
     # Carica il dataset
     captions_mapping, text_data = load_captions_data("input/text/token.txt")
 
     # Suddivide il dataset in set di addestramento e validazione
-    train_data, valid_data = train_val_split(captions_mapping)
+    train_data, valid_data, test_data = train_val_split(captions_mapping)
     print("Number of training samples: ", len(train_data))
     print("Number of validation samples: ", len(valid_data))
+    print("Number of test samples: ", len(test_data))
 
     vectorization = TextVectorization(
         max_tokens=VOCAB_SIZE,
@@ -102,6 +133,11 @@ if __name__ == '__main__':
         standardize=custom_standardization,
     )
     vectorization.adapt(text_data)
+
+    # Passa la lista di immagini e la lista delle didascalie corrispondenti
+    train_dataset = make_dataset(list(train_data.keys()), list(train_data.values()))
+
+    valid_dataset = make_dataset(list(valid_data.keys()), list(valid_data.values()))
 
     # Data augmentation per le immagini
     image_augmentation = keras.Sequential(
@@ -112,11 +148,6 @@ if __name__ == '__main__':
         ]
     )
 
-    # Passa la lista di immagini e la lista delle didascalie corrispondenti
-    train_dataset = make_dataset(list(train_data.keys()), list(train_data.values()))
-
-    valid_dataset = make_dataset(list(valid_data.keys()), list(valid_data.values()))
-
     cnn_model = get_cnn_model()
     encoder = TransformerEncoderBlock(embed_dim=EMBED_DIM, dense_dim=FF_DIM, num_heads=1)
     decoder = TransformerDecoderBlock(embed_dim=EMBED_DIM, ff_dim=FF_DIM, num_heads=2)
@@ -124,7 +155,8 @@ if __name__ == '__main__':
         cnn_model=cnn_model,
         encoder=encoder,
         decoder=decoder,
-        image_aug=image_augmentation,
+        vectorization=vectorization,
+        image_aug=image_augmentation
     )
 
     # Definizione della funzione di perdita
@@ -152,22 +184,12 @@ if __name__ == '__main__':
         callbacks=[early_stopping],
     )
 
-    # Ottieni il vocabolario dal layer di TextVectorization
-    vocab = vectorization.get_vocabulary()
-    # Crea un dizionario per la ricerca inversa del vocabolario
-    index_lookup = dict(zip(range(len(vocab)), vocab))
-    # Determina la lunghezza massima per la generazione di didascalie
-    max_decoded_sentence_length = SEQ_LENGTH - 1
     # Ottieni la lista dei nomi delle immagini nel set di dati di validazione
-    valid_images = list(valid_data.keys())
+    #valid_images = list(valid_data.keys())
 
-    test_model(sample_img="input/test/1.jpg")
-    test_model(sample_img="input/test/2.jpg")
-    test_model(sample_img="input/test/3.jpg")
-    test_model(sample_img="input/test/4.jpg")
-    test_model(sample_img="input/test/5.jpg")
-    test_model(sample_img="input/test/6.jpg")
-    test_model(sample_img="input/test/7.jpg")
-    test_model(sample_img="input/test/8.jpg")
-    test_model(sample_img="input/test/9.jpg")
-    test_model(sample_img="input/test/10.jpg")
+    vocab = vectorization.get_vocabulary()
+    INDEX_LOOKUP = dict(zip(range(len(vocab)), vocab))
+    MAX_DECODED_SENTENCE_LENGTH = SEQ_LENGTH - 1
+    test_images = list(test_data.keys())
+
+    visualization(test_data, caption_model, BLEU_score, 10)

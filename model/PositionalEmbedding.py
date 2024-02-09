@@ -3,8 +3,8 @@ import tensorflow
 
 
 class PositionalEmbedding(layers.Layer):
-    def __init__(self, sequence_length, vocab_size, embed_dim, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, sequence_length, vocab_size, embed_dim):
+        super(PositionalEmbedding, self).__init__()
 
         # Creazione del layer di embedding per i token
         self.token_embeddings = layers.Embedding(

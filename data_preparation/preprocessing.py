@@ -2,6 +2,8 @@ import os
 import re
 
 # Impostazione del backend di Keras su TensorFlow
+from sklearn.model_selection import train_test_split
+
 os.environ["KERAS_BACKEND"] = "tensorflow"
 import matplotlib
 
@@ -66,7 +68,7 @@ def load_captions_data(filename):
         return caption_mapping, text_data
 
 
-def train_val_split(caption_data, train_size=0.8, shuffle=True):
+def train_val_split(caption_data, validation_size=0.2, test_size=0.05, shuffle=True):
     # 1. Ottenere la lista di tutti i nomi delle immagini
     all_images = list(caption_data.keys())
 
@@ -74,18 +76,15 @@ def train_val_split(caption_data, train_size=0.8, shuffle=True):
     if shuffle:
         np.random.shuffle(all_images)
 
-    # 3. Suddividere in set di allenamento e validazione
-    train_size = int(len(caption_data) * train_size)
+    train_keys, validation_keys = train_test_split(all_images, test_size=validation_size, random_state=42)
+    validation_keys, test_keys = train_test_split(validation_keys, test_size=test_size, random_state=42)
 
-    training_data = {
-        img_name: caption_data[img_name] for img_name in all_images[:train_size]
-    }
-    validation_data = {
-        img_name: caption_data[img_name] for img_name in all_images[train_size:]
-    }
+    training_data = {img_name: caption_data[img_name] for img_name in train_keys}
+    validation_data = {img_name: caption_data[img_name] for img_name in validation_keys}
+    test_data = {img_name: caption_data[img_name] for img_name in test_keys}
 
-    # 4. Restituire le divisioni
-    return training_data, validation_data
+    # Return the splits
+    return training_data, validation_data, test_data
 
 
 def regex():

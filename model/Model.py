@@ -1,8 +1,9 @@
 import keras
+import numpy as np
 import tensorflow
 from keras import layers
 from keras.src.applications import efficientnet
-from data_preparation.preprocessing import IMAGE_SIZE
+from data_preparation.preprocessing import IMAGE_SIZE, decode_and_resize
 
 
 class ImageCaptioningModel(keras.Model):
@@ -11,10 +12,11 @@ class ImageCaptioningModel(keras.Model):
             cnn_model,
             encoder,
             decoder,
+            vectorization,
             num_captions_per_image=5,
             image_aug=None,
     ):
-        super().__init__()
+        super(ImageCaptioningModel, self).__init__()
 
         # Modello CNN per l'estrazione delle caratteristiche dell'immagine
         self.cnn_model = cnn_model
@@ -22,6 +24,8 @@ class ImageCaptioningModel(keras.Model):
         # Encoder e Decoder per il modello di image captioning
         self.encoder = encoder
         self.decoder = decoder
+
+        self.vectorization = vectorization
 
         # Tracker per la perdita e l'accuratezza
         self.loss_tracker = keras.metrics.Mean(name="loss")
@@ -143,26 +147,40 @@ class ImageCaptioningModel(keras.Model):
             "acc": self.acc_tracker.result(),
         }
 
-    def call(self, inputs, training=None, mask=None):
-        # Implementazione del passaggio in avanti qui
-        batch_img, batch_seq = inputs
-        if self.image_aug:
-            batch_img = self.image_aug(batch_img)
+    def call(self, image_path):
+        img = decode_and_resize(image_path)
 
-        # Estrazione delle caratteristiche dell'immagine
-        img_embed = self.cnn_model(batch_img)
+        img = tensorflow.expand_dims(img, 0)
 
-        # Passaggio di ciascuna delle cinque didascalie al decoder
-        # insieme agli output dell'encoder e calcolo della perdita e dell'accuratezza
-        # per ciascuna didascalia.
-        loss = 0
-        acc = 0
-        for i in range(self.num_captions_per_image):
-            loss, acc = self._compute_caption_loss_and_acc(
-                img_embed, batch_seq[:, i, :], training=training
+        # Passa l'immagine alla CNN
+        img = self.cnn_model(img)
+
+        # Passa le caratteristiche dell'immagine all'encoder del Transformer
+        encoded_img = self.encoder(img, training=False)
+
+        # Ottieni il vocabolario dal layer di TextVectorization
+        vocab = self.vectorization.get_vocabulary()
+        # Crea un dizionario per la ricerca inversa del vocabolario
+        index_lookup = dict(zip(range(len(vocab)), vocab))
+
+        # Genera la didascalia usando il decoder del Transformer
+        decoded_caption = "<start> "
+        for i in range(24):
+            tokenized_caption = self.vectorization([decoded_caption])[:, :-1]
+            mask = tensorflow.math.not_equal(tokenized_caption, 0)
+            predictions = self.decoder(
+                tokenized_caption, encoded_img, training=False, mask=mask
             )
+            sampled_token_index = np.argmax(predictions[0, i, :])
+            sampled_token = index_lookup[sampled_token_index]
+            if sampled_token == "<end>":
+                break
+            decoded_caption += " " + sampled_token
 
-        return loss, acc
+        decoded_caption = decoded_caption.replace("<start> ", "")
+        decoded_caption = decoded_caption.replace(" <end>", "").strip()
+
+        return decoded_caption
 
     @property
     def metrics(self):

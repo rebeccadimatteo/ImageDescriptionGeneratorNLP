@@ -4,8 +4,8 @@ from model.PositionalEmbedding import PositionalEmbedding
 
 
 class TransformerDecoderBlock(layers.Layer):
-    def __init__(self, embed_dim, ff_dim, num_heads, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, embed_dim, ff_dim, num_heads):
+        super(TransformerDecoderBlock, self).__init__()
 
         # Parametri del blocco Transformer Decoder
         self.embed_dim = embed_dim
