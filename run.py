@@ -1,6 +1,6 @@
 import os
 from data_preparation.preprocessing import load_captions_data, train_val_split, custom_standardization, \
-    decode_and_resize
+    decode_and_resize, convert_to_lowercase
 from model.LRSchedule import LRSchedule
 from model.Model import ImageCaptioningModel, get_cnn_model
 from keras import layers
@@ -12,6 +12,7 @@ import numpy as np
 import tensorflow as tf
 import keras
 import nltk
+
 nltk.download('wordnet')
 from nltk.translate.meteor_score import meteor_score
 from nltk.translate.bleu_score import corpus_bleu
@@ -71,7 +72,7 @@ def BLEU_score(actual, predicted):
         processed_actual.append(cap)
 
     split_processed_actual = [sentence.split() for sentence in processed_actual]
-    #predicted = [sentence.split() for sentence in predicted]
+    # predicted = [sentence.split() for sentence in predicted]
     split_predicted = predicted.split()
 
     # Calculating the BLEU score by comparing the predicted caption with five actual captions.
@@ -86,6 +87,7 @@ def BLEU_score(actual, predicted):
         round(b3, 5),
         round(b4, 5)
     ]
+
 
 def ROUGE_score(actual, predicted):
     rouge = Rouge()
@@ -107,6 +109,7 @@ def ROUGE_score(actual, predicted):
 
     return metrics
 
+
 def METEOR_score(actual, predicted):
     processed_actual = []
 
@@ -120,6 +123,7 @@ def METEOR_score(actual, predicted):
 
     score = meteor_score(split_processed_actual, split_predicted)
     return round(score, 5)
+
 
 def visualization(data, model, evaluator, num_of_images):
     keys = list(data.keys())  # List of all test images
@@ -137,9 +141,11 @@ def visualization(data, model, evaluator, num_of_images):
 
     return scores
 
+
 if __name__ == '__main__':
+    convert_to_lowercase()
     # Carica il dataset
-    captions_mapping, text_data = load_captions_data("input/text/token.txt")
+    captions_mapping, text_data = load_captions_data("input/text/token_processed.txt")
 
     # Suddivide il dataset in set di addestramento e validazione
     train_data, valid_data, test_data = train_val_split(captions_mapping)
@@ -155,7 +161,7 @@ if __name__ == '__main__':
     )
     vectorization.adapt(text_data)
 
-    # Passa la lista di immagini e la lista delle didascalie corrispondenti
+    # Passa la lista d'immagini e la lista delle didascalie corrispondenti
     train_dataset = make_dataset(list(train_data.keys()), list(train_data.values()))
 
     valid_dataset = make_dataset(list(valid_data.keys()), list(valid_data.values()))
@@ -206,7 +212,7 @@ if __name__ == '__main__':
     )
 
     # Ottieni la lista dei nomi delle immagini nel set di dati di validazione
-    #valid_images = list(valid_data.keys())
+    # valid_images = list(valid_data.keys())
 
     vocab = vectorization.get_vocabulary()
     INDEX_LOOKUP = dict(zip(range(len(vocab)), vocab))

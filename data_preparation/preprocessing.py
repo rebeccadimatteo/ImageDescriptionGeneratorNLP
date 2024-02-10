@@ -108,3 +108,13 @@ def decode_and_resize(img_path):
     img = tf.image.resize(img, IMAGE_SIZE)
     img = tf.image.convert_image_dtype(img, tf.float32)
     return img
+
+
+def convert_to_lowercase():
+    with open("input/text/token.txt", 'r') as f:
+        lines = f.readlines()
+
+    processed_lines = [line.lower() for line in lines]
+
+    with open("input/text/token_processed.txt", 'w') as f:
+        f.writelines(processed_lines)
