@@ -1,9 +1,4 @@
 import os
-
-from keras_preprocessing.image import load_img
-from matplotlib import pyplot as plt
-from nltk.translate.bleu_score import corpus_bleu
-
 from data_preparation.preprocessing import load_captions_data, train_val_split, custom_standardization, \
     decode_and_resize
 from model.LRSchedule import LRSchedule
@@ -16,6 +11,11 @@ from trasformer.Encoder import TransformerEncoderBlock
 import numpy as np
 import tensorflow as tf
 import keras
+import nltk
+nltk.download('wordnet')
+from nltk.translate.meteor_score import meteor_score
+from nltk.translate.bleu_score import corpus_bleu
+from rouge import Rouge
 
 # Impostazione del backend di Keras su TensorFlow
 os.environ["KERAS_BACKEND"] = "tensorflow"
@@ -81,21 +81,51 @@ def BLEU_score(actual, predicted):
     b4 = corpus_bleu([split_processed_actual], [split_predicted], weights=(0.25, 0.25, 0.25, 0.25))
 
     return [
-        (f'BLEU-4: {round(b4, 5)}'),
-        (f'BLEU-3: {round(b3, 5)}'),
-        (f'BLEU-2: {round(b2, 5)}'),
-        (f'BLEU-1: {round(b1, 5)}'),
-        (f'Predicted: {predicted}'),
-        (f'Actual:  {processed_actual[0]}')
+        round(b1, 5),
+        round(b2, 5),
+        round(b3, 5),
+        round(b4, 5)
     ]
 
+def ROUGE_score(actual, predicted):
+    rouge = Rouge()
+
+    processed_actual = []
+    for i in actual:
+        cap = [INDEX_LOOKUP[x] for x in vectorization(i).numpy() if INDEX_LOOKUP[x] != '']
+        cap = ' '.join(cap)
+        processed_actual.append(cap)
+
+    best_score = 0
+    metrics = []
+    for i in processed_actual:
+        scores = rouge.get_scores(i, predicted)
+        rouge_1_f_score = scores[0]['rouge-1']['f']
+        if rouge_1_f_score > best_score:
+            best_score = rouge_1_f_score
+            metrics = scores
+
+    return metrics
+
+def METEOR_score(actual, predicted):
+    processed_actual = []
+
+    for i in actual:
+        cap = [INDEX_LOOKUP[x] for x in vectorization(i).numpy() if INDEX_LOOKUP[x] != '']
+        cap = ' '.join(cap)
+        processed_actual.append(cap)
+
+    split_processed_actual = [sentence.split() for sentence in processed_actual]
+    split_predicted = predicted.split()
+
+    score = meteor_score(split_processed_actual, split_predicted)
+    return round(score, 5)
 
 def visualization(data, model, evaluator, num_of_images):
     keys = list(data.keys())  # List of all test images
     images = [np.random.choice(keys) for i in range(num_of_images)]  # Randomly selected images
 
-    count = 1
-    fig = plt.figure(figsize=(6, 20))
+    scores = []
     for filename in images:
         actual_cap = data[filename]
         actual_cap = [x.replace("<start> ", "") for x in actual_cap]  # Removing the start token
@@ -103,22 +133,9 @@ def visualization(data, model, evaluator, num_of_images):
 
         predicted_cap = model(filename)
         # Getting the bleu score
-        caps_with_score = evaluator(actual_cap, predicted_cap)
+        scores.append(evaluator(actual_cap, predicted_cap))
 
-        image_load = load_img(filename, target_size=(199, 199, 3))
-        ax = fig.add_subplot(num_of_images, 2, count, xticks=[], yticks=[])
-        ax.imshow(image_load)
-        count += 1
-
-        ax = fig.add_subplot(num_of_images, 2,count)
-        plt.axis('off')
-        ax.plot()
-        ax.set_xlim(0,1)
-        ax.set_ylim(0,len(caps_with_score))
-        for i, text in enumerate(caps_with_score):
-            ax.text(0,i,text,fontsize=10)
-        count += 1
-    plt.show()
+    return scores
 
 if __name__ == '__main__':
     # Carica il dataset
@@ -196,4 +213,4 @@ if __name__ == '__main__':
     MAX_DECODED_SENTENCE_LENGTH = SEQ_LENGTH - 1
     test_images = list(test_data.keys())
 
-    visualization(test_data, caption_model, BLEU_score, 10)
+    print(visualization(test_data, caption_model, METEOR_score, 10))
