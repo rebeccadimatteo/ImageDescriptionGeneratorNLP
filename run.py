@@ -101,11 +101,17 @@ def ROUGE_score(actual, predicted):
     for i in processed_actual:
         scores = rouge.get_scores(i, predicted)
         rouge_1_f_score = scores[0]['rouge-1']['f']
-        if rouge_1_f_score > best_score:
+        if rouge_1_f_score > best_score: #solo gli scores con la rouge-1 maggiore tra tutte le caption reali dell'immagine
             best_score = rouge_1_f_score
             metrics = scores
 
-    return metrics
+    #return metrics
+
+    return {
+        round(metrics[0]['rouge-1']['f'], 5),
+        round(metrics[0]['rouge-2']['f'], 5),
+        round(metrics[0]['rouge-l']['f'], 5)
+    }#restituiamo solo la media armonica tra precision e recall
 
 def METEOR_score(actual, predicted):
     processed_actual = []
@@ -136,6 +142,37 @@ def visualization(data, model, evaluator, num_of_images):
         scores.append(evaluator(actual_cap, predicted_cap))
 
     return scores
+
+def evaluation(data, model, num_of_images):
+    scores_bleu = visualization(data, model, BLEU_score, num_of_images)
+    scores_rouge = visualization(data, model, ROUGE_score, num_of_images)
+    scores_meteor = visualization(data, model, METEOR_score, num_of_images)
+
+    mean_bleu1, mean_bleu2, mean_bleu3, mean_bleu4 = 0
+    for i in range(len(scores_bleu)):
+        mean_bleu1 += scores_bleu[i][0]
+        mean_bleu2 += scores_bleu[i][1]
+        mean_bleu3 += scores_bleu[i][2]
+        mean_bleu4 += scores_bleu[i][3]
+
+    mean_bleu1 = mean_bleu1 / len(scores_bleu)
+    mean_bleu2 = mean_bleu2 / len(scores_bleu)
+    mean_bleu3 = mean_bleu3 / len(scores_bleu)
+    mean_bleu4 = mean_bleu4 / len(scores_bleu)
+
+    mean_meteor = np.mean(scores_meteor)
+
+    mean_rouge1, mean_rouge2, mean_rougel = 0
+    for i in range(len(scores_rouge)):
+        mean_rouge1 += scores_rouge[i][0]
+        mean_rouge2 += scores_rouge[i][1]
+        mean_rougel += scores_rouge[i][2]
+
+    mean_rouge1 = mean_rouge1/len(scores_rouge)
+    mean_rouge2 = mean_rouge2/len(scores_rouge)
+    mean_rougel = mean_rougel/len(scores_rouge)
+
+    return [mean_bleu1, mean_bleu2, mean_bleu3, mean_bleu4, mean_meteor, mean_rouge1, mean_rouge2, mean_rougel]
 
 if __name__ == '__main__':
     # Carica il dataset
@@ -213,4 +250,13 @@ if __name__ == '__main__':
     MAX_DECODED_SENTENCE_LENGTH = SEQ_LENGTH - 1
     test_images = list(test_data.keys())
 
-    print(visualization(test_data, caption_model, METEOR_score, 10))
+    scores = evaluation(test_data, caption_model, 20)
+
+    print("BLEU-1: ", scores[0])
+    print("BLEU-2: ", scores[1])
+    print("BLEU-3: ", scores[2])
+    print("BLEU-4: ", scores[3])
+    print("METEOR: ", scores[4])
+    print("ROUGE-1: ", scores[5])
+    print("ROUGE-2: ", scores[6])
+    print("ROUGE-L: ", scores[7])
