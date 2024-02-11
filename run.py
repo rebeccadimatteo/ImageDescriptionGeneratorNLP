@@ -127,7 +127,7 @@ def METEOR_score(actual, predicted):
     score = meteor_score(split_processed_actual, split_predicted)
     return round(score, 5)
 
-def visualization(data, model, evaluator, num_of_images):
+def visualization(data, model, evaluator):
     keys = list(data.keys())  # List of all test images
     #images = [np.random.choice(keys) for i in range(num_of_images)]  # Randomly selected images
 
@@ -143,10 +143,10 @@ def visualization(data, model, evaluator, num_of_images):
 
     return scores
 
-def evaluation(data, model, num_of_images):
-    scores_bleu = visualization(data, model, BLEU_score, num_of_images)
-    scores_rouge = visualization(data, model, ROUGE_score, num_of_images)
-    scores_meteor = visualization(data, model, METEOR_score, num_of_images)
+def evaluation(data, model):
+    scores_bleu = visualization(data, model, BLEU_score)
+    scores_rouge = visualization(data, model, ROUGE_score)
+    scores_meteor = visualization(data, model, METEOR_score)
 
     mean_bleu1 = mean_bleu2 = mean_bleu3 = mean_bleu4 = 0
     for i in range(len(scores_bleu)):
