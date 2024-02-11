@@ -129,10 +129,10 @@ def METEOR_score(actual, predicted):
 
 def visualization(data, model, evaluator, num_of_images):
     keys = list(data.keys())  # List of all test images
-    images = [np.random.choice(keys) for i in range(num_of_images)]  # Randomly selected images
+    #images = [np.random.choice(keys) for i in range(num_of_images)]  # Randomly selected images
 
     scores = []
-    for filename in images:
+    for filename in keys:
         actual_cap = data[filename]
         actual_cap = [x.replace("<start> ", "") for x in actual_cap]  # Removing the start token
         actual_cap = [x.replace(" <end>", "") for x in actual_cap]  # Removing the end token
@@ -184,9 +184,6 @@ if __name__ == '__main__':
 
     # Suddivide il dataset in set di addestramento e validazione
     train_data, valid_data, test_data = train_val_split(captions_mapping)
-    print("Number of training samples: ", len(train_data))
-    print("Number of validation samples: ", len(valid_data))
-    print("Number of test samples: ", len(test_data))
 
     vectorization = TextVectorization(
         max_tokens=VOCAB_SIZE,
@@ -254,7 +251,7 @@ if __name__ == '__main__':
     MAX_DECODED_SENTENCE_LENGTH = SEQ_LENGTH - 1
     test_images = list(test_data.keys())
 
-    scores = evaluation(test_data, caption_model, 20)
+    scores = evaluation(test_data, caption_model, len(test_data))
 
     print("BLEU-1: ", scores[0])
     print("BLEU-2: ", scores[1])
