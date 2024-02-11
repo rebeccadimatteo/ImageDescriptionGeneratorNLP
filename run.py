@@ -251,7 +251,7 @@ if __name__ == '__main__':
     MAX_DECODED_SENTENCE_LENGTH = SEQ_LENGTH - 1
     test_images = list(test_data.keys())
 
-    scores = evaluation(test_data, caption_model, len(test_data))
+    scores = evaluation(test_data, caption_model)
 
     print("BLEU-1: ", scores[0])
     print("BLEU-2: ", scores[1])
