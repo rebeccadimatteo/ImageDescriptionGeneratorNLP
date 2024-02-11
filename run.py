@@ -251,4 +251,13 @@ if __name__ == '__main__':
     MAX_DECODED_SENTENCE_LENGTH = SEQ_LENGTH - 1
     test_images = list(test_data.keys())
 
-    print(visualization(test_data, caption_model, METEOR_score, 10))
+    scores = evaluation(test_data, caption_model, 20)
+
+    print("BLEU-1: ", scores[0])
+    print("BLEU-2: ", scores[1])
+    print("BLEU-3: ", scores[2])
+    print("BLEU-4: ", scores[3])
+    print("METEOR: ", scores[4])
+    print("ROUGE-1: ", scores[5])
+    print("ROUGE-2: ", scores[6])
+    print("ROUGE-L: ", scores[7])
