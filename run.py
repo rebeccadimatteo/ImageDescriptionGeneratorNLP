@@ -101,7 +101,7 @@ def ROUGE_score(actual, predicted):
     for i in processed_actual:
         scores = rouge.get_scores(i, predicted)
         rouge_1_f_score = scores[0]['rouge-1']['f']
-        if rouge_1_f_score > best_score: #solo gli scores con la rouge-1 maggiore tra tutte le caption reali dell'immagine
+        if rouge_1_f_score > best_score:
             best_score = rouge_1_f_score
             metrics = scores
 
@@ -175,8 +175,9 @@ def evaluation(data, model, num_of_images):
     return [mean_bleu1, mean_bleu2, mean_bleu3, mean_bleu4, mean_meteor, mean_rouge1, mean_rouge2, mean_rougel]
 
 if __name__ == '__main__':
+    convert_to_lowercase()
     # Carica il dataset
-    captions_mapping, text_data = load_captions_data("input/text/token.txt")
+    captions_mapping, text_data = load_captions_data("input/text/token_processed.txt")
 
     # Suddivide il dataset in set di addestramento e validazione
     train_data, valid_data, test_data = train_val_split(captions_mapping)
@@ -250,13 +251,4 @@ if __name__ == '__main__':
     MAX_DECODED_SENTENCE_LENGTH = SEQ_LENGTH - 1
     test_images = list(test_data.keys())
 
-    scores = evaluation(test_data, caption_model, 20)
-
-    print("BLEU-1: ", scores[0])
-    print("BLEU-2: ", scores[1])
-    print("BLEU-3: ", scores[2])
-    print("BLEU-4: ", scores[3])
-    print("METEOR: ", scores[4])
-    print("ROUGE-1: ", scores[5])
-    print("ROUGE-2: ", scores[6])
-    print("ROUGE-L: ", scores[7])
+    print(visualization(test_data, caption_model, METEOR_score, 10))
