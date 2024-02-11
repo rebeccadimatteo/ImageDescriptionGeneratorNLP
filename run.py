@@ -1,6 +1,6 @@
 import os
 from data_preparation.preprocessing import load_captions_data, train_val_split, custom_standardization, \
-    decode_and_resize
+    decode_and_resize, convert_to_lowercase
 from model.LRSchedule import LRSchedule
 from model.Model import ImageCaptioningModel, get_cnn_model
 from keras import layers
