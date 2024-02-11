@@ -107,11 +107,11 @@ def ROUGE_score(actual, predicted):
 
     #return metrics
 
-    return {
+    return [
         round(metrics[0]['rouge-1']['f'], 5),
         round(metrics[0]['rouge-2']['f'], 5),
         round(metrics[0]['rouge-l']['f'], 5)
-    }#restituiamo solo la media armonica tra precision e recall
+    ]#restituiamo solo la media armonica tra precision e recall
 
 def METEOR_score(actual, predicted):
     processed_actual = []
@@ -148,7 +148,7 @@ def evaluation(data, model, num_of_images):
     scores_rouge = visualization(data, model, ROUGE_score, num_of_images)
     scores_meteor = visualization(data, model, METEOR_score, num_of_images)
 
-    mean_bleu1, mean_bleu2, mean_bleu3, mean_bleu4 = 0
+    mean_bleu1 = mean_bleu2 = mean_bleu3 = mean_bleu4 = 0
     for i in range(len(scores_bleu)):
         mean_bleu1 += scores_bleu[i][0]
         mean_bleu2 += scores_bleu[i][1]
@@ -160,9 +160,11 @@ def evaluation(data, model, num_of_images):
     mean_bleu3 = mean_bleu3 / len(scores_bleu)
     mean_bleu4 = mean_bleu4 / len(scores_bleu)
 
+
     mean_meteor = np.mean(scores_meteor)
 
-    mean_rouge1, mean_rouge2, mean_rougel = 0
+
+    mean_rouge1 = mean_rouge2 = mean_rougel = 0
     for i in range(len(scores_rouge)):
         mean_rouge1 += scores_rouge[i][0]
         mean_rouge2 += scores_rouge[i][1]
@@ -171,6 +173,7 @@ def evaluation(data, model, num_of_images):
     mean_rouge1 = mean_rouge1/len(scores_rouge)
     mean_rouge2 = mean_rouge2/len(scores_rouge)
     mean_rougel = mean_rougel/len(scores_rouge)
+
 
     return [mean_bleu1, mean_bleu2, mean_bleu3, mean_bleu4, mean_meteor, mean_rouge1, mean_rouge2, mean_rougel]
 
