@@ -1,4 +1,7 @@
 import os
+
+from keras.optimizers import Adam
+
 from data_preparation.preprocessing import load_captions_data, train_val_split, custom_standardization, \
     decode_and_resize, convert_to_lowercase
 from model.LRSchedule import LRSchedule
@@ -11,7 +14,10 @@ from trasformer.Encoder import TransformerEncoderBlock
 import numpy as np
 import tensorflow as tf
 import keras
+from keras.losses import SparseCategoricalCrossentropy
+from keras.callbacks import EarlyStopping
 import nltk
+
 nltk.download('wordnet')
 from nltk.translate.meteor_score import meteor_score
 from nltk.translate.bleu_score import corpus_bleu
@@ -30,7 +36,7 @@ keras.utils.set_random_seed(13)
 IMAGES_PATH = "input/images"
 
 # Dimensioni desiderate per le immagini
-IMAGE_SIZE = (299, 299)
+IMAGE_SIZE = (224, 224)
 
 # Dimensione del vocabolario
 VOCAB_SIZE = 10000
@@ -46,7 +52,7 @@ FF_DIM = 512
 
 # Altri parametri di addestramento
 BATCH_SIZE = 64
-EPOCHS = 1
+EPOCHS = 5
 
 
 def process_input(img_path, captions):
@@ -71,7 +77,7 @@ def BLEU_score(actual, predicted):
         processed_actual.append(cap)
 
     split_processed_actual = [sentence.split() for sentence in processed_actual]
-    #predicted = [sentence.split() for sentence in predicted]
+    # predicted = [sentence.split() for sentence in predicted]
     split_predicted = predicted.split()
 
     # Calculating the BLEU score by comparing the predicted caption with five actual captions.
@@ -86,6 +92,7 @@ def BLEU_score(actual, predicted):
         round(b3, 5),
         round(b4, 5)
     ]
+
 
 def ROUGE_score(actual, predicted):
     rouge = Rouge()
@@ -105,13 +112,14 @@ def ROUGE_score(actual, predicted):
             best_score = rouge_1_f_score
             metrics = scores
 
-    #return metrics
+    # return metrics
 
     return [
         round(metrics[0]['rouge-1']['f'], 5),
         round(metrics[0]['rouge-2']['f'], 5),
         round(metrics[0]['rouge-l']['f'], 5)
-    ]#restituiamo solo la media armonica tra precision e recall
+    ]  # restituiamo solo la media armonica tra precision e recall
+
 
 def METEOR_score(actual, predicted):
     processed_actual = []
@@ -127,9 +135,10 @@ def METEOR_score(actual, predicted):
     score = meteor_score(split_processed_actual, split_predicted)
     return round(score, 5)
 
+
 def visualization(data, model, evaluator):
     keys = list(data.keys())  # List of all test images
-    #images = [np.random.choice(keys) for i in range(num_of_images)]  # Randomly selected images
+    # images = [np.random.choice(keys) for i in range(num_of_images)]  # Randomly selected images
 
     scores = []
     for filename in keys:
@@ -142,6 +151,7 @@ def visualization(data, model, evaluator):
         scores.append(evaluator(actual_cap, predicted_cap))
 
     return scores
+
 
 def evaluation(data, model):
     scores_bleu = visualization(data, model, BLEU_score)
@@ -160,9 +170,7 @@ def evaluation(data, model):
     mean_bleu3 = mean_bleu3 / len(scores_bleu)
     mean_bleu4 = mean_bleu4 / len(scores_bleu)
 
-
     mean_meteor = np.mean(scores_meteor)
-
 
     mean_rouge1 = mean_rouge2 = mean_rougel = 0
     for i in range(len(scores_rouge)):
@@ -170,12 +178,12 @@ def evaluation(data, model):
         mean_rouge2 += scores_rouge[i][1]
         mean_rougel += scores_rouge[i][2]
 
-    mean_rouge1 = mean_rouge1/len(scores_rouge)
-    mean_rouge2 = mean_rouge2/len(scores_rouge)
-    mean_rougel = mean_rougel/len(scores_rouge)
-
+    mean_rouge1 = mean_rouge1 / len(scores_rouge)
+    mean_rouge2 = mean_rouge2 / len(scores_rouge)
+    mean_rougel = mean_rougel / len(scores_rouge)
 
     return [mean_bleu1, mean_bleu2, mean_bleu3, mean_bleu4, mean_meteor, mean_rouge1, mean_rouge2, mean_rougel]
+
 
 if __name__ == '__main__':
     convert_to_lowercase()
@@ -219,13 +227,14 @@ if __name__ == '__main__':
     )
 
     # Definizione della funzione di perdita
-    cross_entropy = keras.losses.SparseCategoricalCrossentropy(
+    cross_entropy = SparseCategoricalCrossentropy(
         from_logits=False,
-        reduction=keras.losses.Reduction.AUTO,  # Impostare la riduzione su 'auto'
+        reduction="auto",
+        #keras.losses.Reduction.AUTO,  # Impostare la riduzione su 'auto'
     )
 
     # Criteri di EarlyStopping
-    early_stopping = keras.callbacks.EarlyStopping(patience=3, restore_best_weights=True)
+    early_stopping = EarlyStopping(patience=3, restore_best_weights=True)
 
     # Creazione di un programma di apprendimento
     num_train_steps = len(train_dataset) * EPOCHS
@@ -233,7 +242,7 @@ if __name__ == '__main__':
     lr_schedule = LRSchedule(post_warmup_learning_rate=1e-4, warmup_steps=num_warmup_steps)
 
     # Compila il modello
-    caption_model.compile(optimizer=keras.optimizers.Adam(lr_schedule), loss=cross_entropy)
+    caption_model.compile(optimizer=Adam(lr_schedule), loss=cross_entropy)
 
     # Addestra il modello
     caption_model.fit(
@@ -244,7 +253,7 @@ if __name__ == '__main__':
     )
 
     # Ottieni la lista dei nomi delle immagini nel set di dati di validazione
-    #valid_images = list(valid_data.keys())
+    # valid_images = list(valid_data.keys())
 
     vocab = vectorization.get_vocabulary()
     INDEX_LOOKUP = dict(zip(range(len(vocab)), vocab))

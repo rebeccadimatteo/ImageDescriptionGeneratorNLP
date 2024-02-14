@@ -2,8 +2,10 @@ import keras
 import numpy as np
 import tensorflow
 from keras import layers
-from keras.src.applications import efficientnet
+from keras.applications import EfficientNetB0
 from data_preparation.preprocessing import IMAGE_SIZE, decode_and_resize
+
+from keras.metrics import Mean
 
 
 class ImageCaptioningModel(keras.Model):
@@ -28,8 +30,8 @@ class ImageCaptioningModel(keras.Model):
         self.vectorization = vectorization
 
         # Tracker per la perdita e l'accuratezza
-        self.loss_tracker = keras.metrics.Mean(name="loss")
-        self.acc_tracker = keras.metrics.Mean(name="accuracy")
+        self.loss_tracker = Mean(name="loss")
+        self.acc_tracker = Mean(name="accuracy")
 
         # Numero di didascalie per ogni immagine
         self.num_captions_per_image = num_captions_per_image
@@ -190,7 +192,7 @@ class ImageCaptioningModel(keras.Model):
 
 def get_cnn_model():
     # Funzione per ottenere un modello CNN basato su EfficientNetB0
-    base_model = efficientnet.EfficientNetB0(
+    base_model = EfficientNetB0(
         input_shape=(*IMAGE_SIZE, 3),
         include_top=False,
         weights="imagenet",

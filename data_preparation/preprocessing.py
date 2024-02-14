@@ -20,7 +20,7 @@ keras.utils.set_random_seed(111)
 IMAGES_PATH = "input/images"
 
 # Dimensioni desiderate per le immagini
-IMAGE_SIZE = (299, 299)
+IMAGE_SIZE = (224, 224)
 
 # Lunghezza fissa consentita per qualsiasi sequenza
 SEQ_LENGTH = 25
