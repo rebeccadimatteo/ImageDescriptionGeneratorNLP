@@ -1,7 +1,9 @@
+import keras
 from keras import layers
 
 
 # Definizione di un blocco Transformer Encoder come sottoclasse di layers.Layer
+@keras.saving.register_keras_serializable()
 class TransformerEncoderBlock(layers.Layer):
 
     # Costruttore della classe
@@ -35,7 +37,6 @@ class TransformerEncoderBlock(layers.Layer):
 
         # Applicazione della rete densa con attivazione ReLU
         inputs = self.dense_1(inputs)
-
         # Applicazione dell'attenzione multi-testa
         attention_output_1 = self.attention_1(
             query=inputs,
@@ -44,7 +45,6 @@ class TransformerEncoderBlock(layers.Layer):
             attention_mask=None,
             training=training,
         )
-
         # Aggiunta dell'output dell'attenzione ai dati di input originali, normalizzazione layer e output del blocco Transformer
         out_1 = self.layernorm_2(inputs + attention_output_1)
 

@@ -1,7 +1,8 @@
+import keras
 from keras import layers
 import tensorflow
 
-
+@keras.saving.register_keras_serializable()
 class PositionalEmbedding(layers.Layer):
     def __init__(self, sequence_length, vocab_size, embed_dim):
         super(PositionalEmbedding, self).__init__()
@@ -23,6 +24,7 @@ class PositionalEmbedding(layers.Layer):
 
         # Calcolo della scala per gli embedding
         self.embed_scale = tensorflow.math.sqrt(tensorflow.cast(embed_dim, tensorflow.float32))
+        self.mask_zero = True
 
     def call(self, inputs, **kwargs):
         # Calcolo della lunghezza della sequenza di input

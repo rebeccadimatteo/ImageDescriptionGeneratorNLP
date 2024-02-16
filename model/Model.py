@@ -7,7 +7,7 @@ from data_preparation.preprocessing import IMAGE_SIZE, decode_and_resize
 
 from keras.metrics import Mean
 
-
+@keras.saving.register_keras_serializable()
 class ImageCaptioningModel(keras.Model):
     def __init__(
             self,
@@ -149,8 +149,8 @@ class ImageCaptioningModel(keras.Model):
             "acc": self.acc_tracker.result(),
         }
 
-    def call(self, image_path):
-        img = decode_and_resize(image_path)
+    def call(self, img):
+        #img = decode_and_resize(image_path)
 
         img = tensorflow.expand_dims(img, 0)
 

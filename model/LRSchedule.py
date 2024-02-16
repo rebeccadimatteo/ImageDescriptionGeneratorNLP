@@ -1,8 +1,9 @@
+import keras
 import tensorflow
-from keras.optimizers.schedules.learning_rate_schedule import LearningRateSchedule as LearningRateSchedule
-
+from keras.optimizers.schedules import LearningRateSchedule
 
 # Learning Rate Scheduler for the optimizer
+@keras.saving.register_keras_serializable()
 class LRSchedule(LearningRateSchedule):
     def __init__(self, post_warmup_learning_rate, warmup_steps):
         super().__init__()

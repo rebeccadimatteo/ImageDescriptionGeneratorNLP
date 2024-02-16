@@ -1,8 +1,9 @@
+import keras
 from keras import layers
 import tensorflow
 from model.PositionalEmbedding import PositionalEmbedding
 
-
+@keras.saving.register_keras_serializable()
 class TransformerDecoderBlock(layers.Layer):
     def __init__(self, embed_dim, ff_dim, num_heads):
         super(TransformerDecoderBlock, self).__init__()
@@ -14,11 +15,13 @@ class TransformerDecoderBlock(layers.Layer):
 
         # Livelli del blocco Transformer Decoder
         self.attention_1 = layers.MultiHeadAttention(
-            num_heads=num_heads, key_dim=embed_dim, dropout=0.1
+            num_heads=num_heads, key_dim=embed_dim, dropout=0.1,
         )
+
         self.attention_2 = layers.MultiHeadAttention(
             num_heads=num_heads, key_dim=embed_dim, dropout=0.1
         )
+
         self.ffn_layer_1 = layers.Dense(ff_dim, activation="relu")
         self.ffn_layer_2 = layers.Dense(embed_dim)
 
@@ -70,6 +73,7 @@ class TransformerDecoderBlock(layers.Layer):
             attention_mask=combined_mask,
             training=training,
         )
+
         out_1 = self.layernorm_1(inputs + attention_output_1)
 
         # Seconda attenzione multi-testa con encoder_outputs
@@ -80,6 +84,7 @@ class TransformerDecoderBlock(layers.Layer):
             attention_mask=padding_mask,
             training=training,
         )
+
         out_2 = self.layernorm_2(out_1 + attention_output_2)
 
         # Feedforward neural network

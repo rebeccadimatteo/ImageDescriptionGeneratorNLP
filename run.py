@@ -17,7 +17,6 @@ import keras
 from keras.losses import SparseCategoricalCrossentropy
 from keras.callbacks import EarlyStopping
 import nltk
-
 nltk.download('wordnet')
 from nltk.translate.meteor_score import meteor_score
 from nltk.translate.bleu_score import corpus_bleu
@@ -52,7 +51,7 @@ FF_DIM = 512
 
 # Altri parametri di addestramento
 BATCH_SIZE = 64
-EPOCHS = 5
+EPOCHS = 1
 
 
 def process_input(img_path, captions):
@@ -146,7 +145,8 @@ def visualization(data, model, evaluator):
         actual_cap = [x.replace("<start> ", "") for x in actual_cap]  # Removing the start token
         actual_cap = [x.replace(" <end>", "") for x in actual_cap]  # Removing the end token
 
-        predicted_cap = model(filename)
+        img = decode_and_resize(filename)
+        predicted_cap = model(img)
         # Getting the bleu score
         scores.append(evaluator(actual_cap, predicted_cap))
 
@@ -216,8 +216,8 @@ if __name__ == '__main__':
     )
 
     cnn_model = get_cnn_model()
-    encoder = TransformerEncoderBlock(embed_dim=EMBED_DIM, dense_dim=FF_DIM, num_heads=1)
-    decoder = TransformerDecoderBlock(embed_dim=EMBED_DIM, ff_dim=FF_DIM, num_heads=2)
+    encoder = TransformerEncoderBlock(embed_dim=EMBED_DIM, dense_dim=FF_DIM, num_heads=2)
+    decoder = TransformerDecoderBlock(embed_dim=EMBED_DIM, ff_dim=FF_DIM, num_heads=3)
     caption_model = ImageCaptioningModel(
         cnn_model=cnn_model,
         encoder=encoder,
@@ -229,7 +229,7 @@ if __name__ == '__main__':
     # Definizione della funzione di perdita
     cross_entropy = SparseCategoricalCrossentropy(
         from_logits=False,
-        reduction="auto",
+        reduction="none"
         #keras.losses.Reduction.AUTO,  # Impostare la riduzione su 'auto'
     )
 
